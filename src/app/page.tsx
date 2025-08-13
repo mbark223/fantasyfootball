@@ -13,10 +13,10 @@ export default function HomePage() {
             Your intelligent draft assistant for Yahoo Fantasy Football
           </p>
           <Link
-            href="/auth/login"
+            href="/draft"
             className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
-            Connect with Yahoo
+            Start Draft Assistant
             <ArrowRight className="ml-2 h-5 w-5" />
           </Link>
         </div>
