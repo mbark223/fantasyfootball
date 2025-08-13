@@ -162,20 +162,26 @@ export class MockYahooDraftConnector extends YahooDraftConnector {
   private currentPick = 1;
 
   async connect() {
-    // Simulate picks every 30 seconds
+    // Don't call the parent connect method for mock
+    // Simulate picks every 10 seconds for faster testing
     this.mockPickInterval = setInterval(() => {
       const positions = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
       const teams = ['DAL', 'NYG', 'PHI', 'WAS', 'GB', 'CHI', 'MIN', 'DET'];
+      const playerNames = [
+        'Christian McCaffrey', 'Tyreek Hill', 'Justin Jefferson', 'Ja\'Marr Chase',
+        'Travis Kelce', 'Josh Allen', 'Jalen Hurts', 'Nick Chubb',
+        'Derrick Henry', 'Davante Adams', 'Cooper Kupp', 'Stefon Diggs'
+      ];
       
       const mockUpdate: DraftUpdate = {
         type: 'pick',
         pick: {
           round: Math.ceil(this.currentPick / 12),
           pickNumber: this.currentPick,
-          team: `Team ${(this.currentPick % 12) + 1}`,
+          team: `Team ${((this.currentPick - 1) % 12) + 1}`,
           player: {
             id: `player_${this.currentPick}`,
-            name: `Mock Player ${this.currentPick}`,
+            name: playerNames[Math.floor(Math.random() * playerNames.length)] + ` (#${this.currentPick})`,
             position: positions[Math.floor(Math.random() * positions.length)],
             team: teams[Math.floor(Math.random() * teams.length)],
           },
@@ -185,7 +191,16 @@ export class MockYahooDraftConnector extends YahooDraftConnector {
 
       this.onUpdate(mockUpdate);
       this.currentPick++;
-    }, 30000);
+
+      // Stop after 10 rounds
+      if (this.currentPick > 120) {
+        this.disconnect();
+        this.onUpdate({
+          type: 'end',
+          timestamp: new Date(),
+        });
+      }
+    }, 10000); // Every 10 seconds for faster testing
 
     // Send initial start update
     this.onUpdate({

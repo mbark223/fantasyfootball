@@ -69,7 +69,7 @@ export default function DraftPage() {
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Left Sidebar - Draft History */}
         <div className="w-64 bg-card border-r overflow-y-auto">
-          <DraftHistory />
+          <DraftHistory draftUpdates={draftUpdates} />
         </div>
 
         {/* Main Content */}
