@@ -28,7 +28,7 @@ export class YahooDraftConnector {
   private authConfig: YahooAuthConfig;
   private leagueId: string;
   private draftId: string;
-  private onUpdate: (update: DraftUpdate) => void;
+  protected onUpdate: (update: DraftUpdate) => void;
   private lastPickNumber = 0;
 
   constructor(
