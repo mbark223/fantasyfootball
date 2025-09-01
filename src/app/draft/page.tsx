@@ -7,7 +7,7 @@ import TeamRoster from '@/components/TeamRoster'
 import RecommendationPanel from '@/components/RecommendationPanel'
 import DraftHistory from '@/components/DraftHistory'
 import YahooConnectButton from '@/components/YahooConnectButton'
-import { MockYahooDraftConnector, DraftUpdate } from '@/lib/yahooDraftConnector'
+import { YahooDraftConnector, MockYahooDraftConnector, DraftUpdate } from '@/lib/yahooDraftConnector'
 import { FantasyAssistant } from '@/lib/fantasyAssistant'
 
 export default function DraftPage() {
@@ -15,7 +15,8 @@ export default function DraftPage() {
   const [isYahooConnected, setIsYahooConnected] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const [draftUpdates, setDraftUpdates] = useState<DraftUpdate[]>([])
-  const [draftConnector, setDraftConnector] = useState<MockYahooDraftConnector | null>(null)
+  const [draftConnector, setDraftConnector] = useState<YahooDraftConnector | null>(null)
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | undefined>()
 
   useEffect(() => {
     return () => {
@@ -29,20 +30,47 @@ export default function DraftPage() {
   const handleYahooConnect = async () => {
     setIsConnecting(true)
     try {
-      const connector = new MockYahooDraftConnector(
-        {
-          clientId: 'mock_client_id',
-          clientSecret: 'mock_client_secret',
-          redirectUri: window.location.origin + '/api/yahoo/callback',
-        },
-        'mock_league_id',
-        'mock_draft_id',
-        (update: DraftUpdate) => {
-          setDraftUpdates(prev => [...prev, update])
-          // Here we would trigger re-calculation of recommendations
-          console.log('Draft update received:', update)
-        }
-      )
+      // Check if we're in development mode without Yahoo credentials
+      const isDevelopment = !process.env.NEXT_PUBLIC_YAHOO_CLIENT_ID;
+      
+      const connector = isDevelopment
+        ? new MockYahooDraftConnector(
+            {
+              clientId: 'mock_client_id',
+              clientSecret: 'mock_client_secret',
+              redirectUri: window.location.origin + '/api/yahoo/callback',
+            },
+            'mock_league_id',
+            'mock_draft_id',
+            (update: DraftUpdate) => {
+              setDraftUpdates(prev => [...prev, update])
+              setLastUpdateTime(new Date())
+              console.log('Draft update received:', update)
+            }
+          )
+        : new YahooDraftConnector(
+            {
+              clientId: process.env.NEXT_PUBLIC_YAHOO_CLIENT_ID || '',
+              clientSecret: '', // This should not be exposed to client
+              redirectUri: window.location.origin + '/api/yahoo/callback',
+            },
+            'your_league_id', // This should come from user input or URL params
+            'your_draft_id',   // This should come from user input or URL params
+            (update: DraftUpdate) => {
+              setDraftUpdates(prev => [...prev, update])
+              setLastUpdateTime(new Date())
+              console.log('Draft update received:', update)
+            }
+          );
+
+      // If using real Yahoo connection, check if already authenticated
+      if (!isDevelopment && !connector.isAuthenticated()) {
+        // Redirect to Yahoo for authentication
+        await connector.authenticateWithYahoo();
+        // The user will be redirected back after authentication
+        setIsConnecting(false);
+        return;
+      }
 
       await connector.connect()
       setDraftConnector(connector)
@@ -63,6 +91,7 @@ export default function DraftPage() {
           onConnect={handleYahooConnect}
           isConnected={isYahooConnected}
           isConnecting={isConnecting}
+          lastUpdate={lastUpdateTime}
         />
       </div>
 

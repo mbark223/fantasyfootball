@@ -7,12 +7,14 @@ interface YahooConnectButtonProps {
   onConnect: () => Promise<void>;
   isConnected: boolean;
   isConnecting: boolean;
+  lastUpdate?: Date;
 }
 
 export default function YahooConnectButton({ 
   onConnect, 
   isConnected, 
-  isConnecting 
+  isConnecting,
+  lastUpdate 
 }: YahooConnectButtonProps) {
   const handleConnect = async () => {
     try {
@@ -26,7 +28,15 @@ export default function YahooConnectButton({
     return (
       <div className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 rounded-lg">
         <CheckCircle className="h-4 w-4" />
-        <span className="text-sm font-medium">Connected to Yahoo Draft</span>
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">Connected to Yahoo Draft</span>
+          {lastUpdate && (
+            <span className="text-xs opacity-70">
+              Last update: {lastUpdate.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+        <div className="ml-2 h-2 w-2 bg-green-500 rounded-full animate-pulse" />
       </div>
     );
   }

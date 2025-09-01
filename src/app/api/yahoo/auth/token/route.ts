@@ -5,19 +5,47 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { code, clientId, clientSecret, redirectUri } = body;
 
-    // In production, this would:
-    // 1. Exchange the authorization code for access/refresh tokens
-    // 2. Make actual OAuth2 token exchange with Yahoo
-    
-    // For development, return mock tokens
-    const mockTokens = {
-      access_token: 'mock_access_token_' + Date.now(),
-      refresh_token: 'mock_refresh_token_' + Date.now(),
-      expires_in: 3600,
-      token_type: 'Bearer',
-    };
+    // Use environment variables if not provided
+    const yahooClientId = clientId || process.env.YAHOO_CLIENT_ID;
+    const yahooClientSecret = clientSecret || process.env.YAHOO_CLIENT_SECRET;
+    const yahooRedirectUri = redirectUri || process.env.YAHOO_REDIRECT_URI;
 
-    return NextResponse.json(mockTokens);
+    if (!yahooClientId || !yahooClientSecret) {
+      return NextResponse.json(
+        { error: 'Yahoo API credentials not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Exchange authorization code for tokens
+    const tokenUrl = 'https://api.login.yahoo.com/oauth2/get_token';
+    const params = new URLSearchParams({
+      client_id: yahooClientId,
+      client_secret: yahooClientSecret,
+      redirect_uri: yahooRedirectUri,
+      code: code,
+      grant_type: 'authorization_code',
+    });
+
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Yahoo token exchange failed:', errorData);
+      return NextResponse.json(
+        { error: 'Failed to exchange tokens with Yahoo' },
+        { status: response.status }
+      );
+    }
+
+    const tokens = await response.json();
+    return NextResponse.json(tokens);
   } catch (error) {
     console.error('Error exchanging tokens:', error);
     return NextResponse.json(
